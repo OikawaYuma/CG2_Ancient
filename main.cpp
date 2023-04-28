@@ -88,7 +88,7 @@ IDxcBlob* CompileShader(
 	// 初期化で生成したものを3つ
 	IDxcUtils* dxcUtils,
 	IDxcCompiler3* dxcCompiler,
-	IDxcIncludeHandler* includeHander)
+	IDxcIncludeHandler* includeHandler)
 {
 	// これからシェーダーをコンパイルする旨をログに出す
 	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile{}\n", filePath, profile)));
@@ -106,7 +106,7 @@ IDxcBlob* CompileShader(
 	LPCWSTR arguments[] = {
 		filePath.c_str(), // コンパイル対象のhlslファイル名
 		L"-E",L"main",   //エントリーポイントの指定。基本的にmain以外にはしない
-		L"-T,profile",   //ShaderProfileの設定
+		L"-T",profile,   //ShaderProfileの設定
 		L"-Zi",L"-Qembed_debug", //デバック用の情報を埋め込む
 		L"-Od",  // 最適化を外しておく
 		L"-Zpr", // メモリレイアウトは行優先
@@ -117,7 +117,7 @@ IDxcBlob* CompileShader(
 		&shaderSourceBuffer, // 読み込んだファイル
 		arguments,           // コンパイルオプション
 		_countof(arguments), // コンパイルオプションの数
-		includeHander,       // includeが含まれた諸々
+		includeHandler,       // includeが含まれた諸々
 		IID_PPV_ARGS(&shaderResult) // コンパイル推奨
 	);
 	//コンパイルエラーではなくdxcが起動できないなど致命的な状況
@@ -397,9 +397,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//イベント待つ
 		WaitForSingleObject(fenceEvent, INFINITE);
 	}
-
-
-	
 
 	// RootSignature作成
 	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
