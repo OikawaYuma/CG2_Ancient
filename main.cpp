@@ -355,7 +355,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	device->CreateRenderTargetView(swapChainResources[1], &rtvDesc, rtvHandles[1]);
 
 
-	
+
 
 	// 初期値0でFenceを作る
 	ID3D12Fence* fence = nullptr;
@@ -383,20 +383,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 	assert(fenceEvent != nullptr);
-	//Fenceの値を更新
-	fenceValue++;
-	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
-	commandQueue->Signal(fence, fenceValue);
-
-	// fenceの値が指定したSignal値にたどり着いているか確認する
-	// GetCompletedValueの初期値はFence作成時に渡した初期値
-	if (fence->GetCompletedValue() < fenceValue)
-	{
-		//指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
-		fence->SetEventOnCompletion(fenceValue, fenceEvent);
-		//イベント待つ
-		WaitForSingleObject(fenceEvent, INFINITE);
-	}
 
 	// RootSignature作成
 	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
@@ -453,7 +439,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	graphicsPipelineStateDesc.pRootSignature = rootSignature; // RootSignature
 	graphicsPipelineStateDesc.InputLayout = inputLayoutDesc; //InputLayout
 	graphicsPipelineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(),
-	vertexShaderBlob->GetBufferSize() };// PixelShader
+	vertexShaderBlob->GetBufferSize() };//vertexShader
+	graphicsPipelineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(),
+	pixelShaderBlob->GetBufferSize() };// PixelShader
 	graphicsPipelineStateDesc.BlendState = blendDesc;//BlendState
 	graphicsPipelineStateDesc.RasterizerState = rasterizerDesc; //ReterizerState
 	// 書き込むRTVの情報
@@ -500,7 +488,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 使用するリソースのサイズは頂点3つ分のサイズ
 	vertexBufferView.SizeInBytes = sizeof(Vector4) * 3;
 	// 1頂点あたりのサイズ
-	vertexBufferView.SizeInBytes = sizeof(Vector4);
+	vertexBufferView.StrideInBytes= sizeof(Vector4);
 
 	// 頂点リソースにデータを書き込む
 	Vector4* vertexData = nullptr;
@@ -524,14 +512,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	viewport.MaxDepth = 1.0f;
 
 	// シザー矩形
-	D3D12_RECT scissoRect{};
+	D3D12_RECT scissorRect{};
 	// 基本的にビューポートと同じ矩形が構成されるようにする
-	scissoRect.left = 0;
-	scissoRect.right = kClientWidth;
-	scissoRect.top = 0;
-	scissoRect.bottom = kClientHeight;
+	scissorRect.left = 0;
+	scissorRect.right = kClientWidth;
+	scissorRect.top = 0;
+	scissorRect.bottom = kClientHeight;
 
-	
+
 
 	MSG msg{};
 	//ウィンドウのxボタンが押されるまでループ
@@ -542,7 +530,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			DispatchMessage(&msg);
 		}
 		else {
-			
+
 
 			// ゲームの処理
 
@@ -569,9 +557,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			//指定した色で画面全体をクリアする
 			float clearColor[] = { 0.1f,0.25f,0.5f,1.0f }; //青っぽい色。 RGBAの淳  0.1/0.25/0.5/1.0f
 			commandList->ClearRenderTargetView(rtvHandles[backBufferIndex], clearColor, 0, nullptr);
-
 			commandList->RSSetViewports(1, &viewport);  //viewportを設定
-			commandList->RSSetScissorRects(1, &scissoRect);    //Scirssorを設定
+			commandList->RSSetScissorRects(1, &scissorRect);    //Scirssorを設定
 			// RootSignatureを設定。PSOに設定しているけど別途設定が必要
 			commandList->SetGraphicsRootSignature(rootSignature);
 			commandList->SetPipelineState(graphicsPipelineState);    //PSOを設定
@@ -580,7 +567,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			// 描画！（DrawCall/ドローコール）・3頂点で1つのインスタンス。インスタンスについては今後
 			commandList->DrawInstanced(3, 1, 0, 0);
-
 
 			//画面に描く処理はすべて終わり、画面に移すので、状態を遷移
 	// 今回はRenderTargetからPresentにする
@@ -599,6 +585,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			// GPUとOSに画面の交換を行うよう通知する
 			swapChain->Present(1, 0);
+
+			//Fenceの値を更新
+			fenceValue++;
+			// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
+			commandQueue->Signal(fence, fenceValue);
+
+			// fenceの値が指定したSignal値にたどり着いているか確認する
+			// GetCompletedValueの初期値はFence作成時に渡した初期値
+			if (fence->GetCompletedValue() < fenceValue)
+			{
+				//指定したSignalにたどりついていないので、たどり着くまで待つようにイベントを設定する
+				fence->SetEventOnCompletion(fenceValue, fenceEvent);
+				//イベント待つ
+				WaitForSingleObject(fenceEvent, INFINITE);
+			}
+
 
 			//次のフレーム用のコマンドリストを準備
 			hr = commandAllocator->Reset();
