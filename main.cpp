@@ -15,6 +15,9 @@
 #pragma comment(lib,"dxguid.lib")
 #pragma comment(lib,"dxcompiler.lib")
 
+#include"kansu.h"
+#include"WinApp.h"
+
 struct Vector4 final {
 	float x;
 	float y;
@@ -28,21 +31,7 @@ struct Vector4 final {
 //	SIZE_T ptr;
 //}D3D12_CPU;
 
-//ウィンドウプロシージャ
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg,
-	WPARAM wparam, LPARAM lparam) {
-	//メッセージに応じてゲーム固有の処理を行う
-	switch (msg) {
-		//ウィンドウが破棄された
-	case WM_DESTROY:
-		// OSに対して、アプリの終了を伝える
-		PostQuitMessage(0);
-		return 0;
-	}
 
-	// 標準のメッセージ処理を行う
-	return DefWindowProc(hwnd, msg, wparam, lparam);
-}
 
 void Log(const std::string& message) {
 	OutputDebugStringA(message.c_str());
@@ -150,42 +139,9 @@ IDxcBlob* CompileShader(
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-	WNDCLASS wc{};
-	//ウィンドウプロシージャ
-	wc.lpfnWndProc = WindowProc;
-	//ウィンドウクラス名(何でもよい)
-	wc.lpszClassName = L"CG2WindowClass";
-	//インスタンスハンドル
-	wc.hInstance = GetModuleHandle(nullptr);
-	//カーソル
-	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-
-	//ウィンドウクラスを登録する
-	RegisterClass(&wc);
-
-	// クライアント領域のサイズ
-	const int32_t kClientWidth = 1280;
-	const int32_t kClientHeight = 720;
-
-	//ウィンドウサイズを表す構造体にクライアント領域を入れる
-	RECT wrc{ 0,0, kClientWidth,kClientHeight };
-
-	// クライアント領域を元に実際のサイズにwrcを変更してもらう
-	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
-
-	//ウィンドウの生成
-	HWND hwnd = CreateWindow(
-		wc.lpszClassName,        // 利用するクラス名
-		L"CG2",					 // タイトルバーの文字
-		WS_OVERLAPPEDWINDOW,	 // よく見るウィンドウスタイル
-		CW_USEDEFAULT,			 // 表示X座標(Windowsに任せる)
-		CW_USEDEFAULT,			 // 表示Y座標(WindowsOSに任せる)
-		wrc.right - wrc.left,	 // ウィンドウ横幅
-		wrc.bottom - wrc.top,	 // ウィンドウ縦幅
-		nullptr,				 // 親ウィンドウハンドル
-		nullptr,				 // メニューハンドル
-		wc.hInstance,			 // インスタンスハンドル
-		nullptr);				 // オプション
+	WinApp* winApp = new WinApp;
+	
+		 // オプション
 #ifdef _DEBUG
 	ID3D12Debug1* debugController = nullptr;
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
@@ -197,8 +153,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #endif // _DEBUG
 
 
-	//ウィンドウを表示する
-	ShowWindow(hwnd, SW_SHOW);
+
 
 	//文字列を格納する
 	std::string str0{ "" };
@@ -310,15 +265,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// スワップチェーンを生成する
 	IDXGISwapChain4* swapChain = nullptr;
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-	swapChainDesc.Width = kClientWidth;   //画面の幅。ウィンドウのクライアント領域を同じものにしておく
-	swapChainDesc.Height = kClientHeight; //画面の高さ。ウィンドウのクライアント領域を同じものにしておく。
+	swapChainDesc.Width = winApp->kClientWidth;   //画面の幅。ウィンドウのクライアント領域を同じものにしておく
+	swapChainDesc.Height = winApp->kClientHeight; //画面の高さ。ウィンドウのクライアント領域を同じものにしておく。
 	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; //色の形式
 	swapChainDesc.SampleDesc.Count = 1; //マルチサンプルしない
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.BufferCount = 2; //ダブルバッファ
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;// モニタにうつしたら、中身を破棄
 	// コマンドキュー、ウィンドウハンドル、設定を渡して生成する
-	hr = dxgiFactory->CreateSwapChainForHwnd(commandQueue, hwnd, &swapChainDesc, nullptr, nullptr, reinterpret_cast<IDXGISwapChain1**>(&swapChain));
+	hr = dxgiFactory->CreateSwapChainForHwnd(commandQueue, winApp->hwnd, &swapChainDesc, nullptr, nullptr, reinterpret_cast<IDXGISwapChain1**>(&swapChain));
 	assert(SUCCEEDED(hr));
 
 	//ディスクリプタヒープの生成
@@ -504,8 +459,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//ビューポート
 	D3D12_VIEWPORT viewport{};
 	//クライアント領域のサイズと一緒にして画面全体に表示
-	viewport.Width = kClientWidth;
-	viewport.Height = kClientHeight;
+	viewport.Width = (float)winApp->kClientWidth;
+	viewport.Height =(float) winApp->kClientHeight;
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
 	viewport.MinDepth = 0.0f;
@@ -515,9 +470,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3D12_RECT scissorRect{};
 	// 基本的にビューポートと同じ矩形が構成されるようにする
 	scissorRect.left = 0;
-	scissorRect.right = kClientWidth;
+	scissorRect.right = winApp->kClientWidth;
 	scissorRect.top = 0;
-	scissorRect.bottom = kClientHeight;
+	scissorRect.bottom = winApp->kClientHeight;
 
 
 
@@ -640,7 +595,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #ifdef _DEBUG
 	debugController->Release();
 #endif // _DEBUG
-	CloseWindow(hwnd);
+	CloseWindow(winApp->hwnd);
 
 
 	// リソースリークチェック

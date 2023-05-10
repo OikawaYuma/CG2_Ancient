@@ -89,9 +89,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DirIni.cpp" />
+    <ClCompile Include="kansu.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="rander.cpp" />
-    <ClCompile Include="winApp.cpp" />
+    <ClCompile Include="WinApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Object3d.PS.hlsl">
@@ -109,8 +110,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirIni.h" />
+    <ClInclude Include="kansu.h" />
     <ClInclude Include="rander.h" />
-    <ClInclude Include="winApp.h" />
+    <ClInclude Include="WinApp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
